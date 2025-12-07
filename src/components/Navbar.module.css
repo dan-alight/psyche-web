@@ -1,0 +1,17 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background-color: #282c34;
+  padding: 1rem;
+  box-sizing: border-box;
+  color: white;
+}
+
+.navLink {
+  display: block;
+  color: white;
+  /* text-decoration: none; */
+  margin: 1rem 0;
+  font-size: 1.2rem;
+}
