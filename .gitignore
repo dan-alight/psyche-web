@@ -8,3 +8,7 @@ count.txt
 .nitro
 .tanstack
 .wrangler
+
+package-lock.json
+src/routeTree.gen.ts
+.vscode

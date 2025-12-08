@@ -1,0 +1,45 @@
+.goalsContainer {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  max-width: var(--width-content-max);
+  width: 100%;
+  padding: var(--spacing-md);
+}
+
+.goalItem {
+  border-bottom: 1px solid;
+}
+
+.goalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goalHeaderButtonsContainer {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.goalHeaderButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-sm);
+  border-width: 1px;
+  border-color: var(--color-border);
+  border-style: solid;
+  background: none;
+  
+  cursor: pointer;
+}
+
+.goalTitle {
+  text-decoration: underline;
+}
+
+.createGoalButton {
+  align-self: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-lg);
+}

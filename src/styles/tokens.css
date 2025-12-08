@@ -1,0 +1,20 @@
+:root {
+  --color-background: rgb(255, 255, 255);
+  --color-primary: rgb(34, 150, 243);
+  --color-surface: rgb(133, 153, 171);
+  --color-border: rgb(0, 0, 0);
+
+  --width-content-max: 1200px;
+
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+}
