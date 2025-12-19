@@ -8,7 +8,7 @@
 }
 
 .goalItem {
-  border-bottom: 1px solid;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .goalHeader {
@@ -29,8 +29,6 @@
   border-width: 1px;
   border-color: var(--color-border);
   border-style: solid;
-  background: none;
-  
   cursor: pointer;
 }
 
@@ -42,4 +40,5 @@
   align-self: center;
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--font-size-lg);
+  border-radius: var(--radius-sm);
 }

@@ -1,0 +1,37 @@
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: var(--spacing-md);
+}
+
+.providerSelector {
+  align-self: start;
+}
+
+.keySelector {
+  align-self: start;
+}
+
+.keyItem {
+  background-color: var(--color-surface);
+}
+
+.modelsRefreshButton {
+  margin-bottom: var(--spacing-xs);
+  align-self: start;
+}
+
+.modelsList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.modelItem {
+  display: flex;
+
+}
+
+.modelItem span {
+}

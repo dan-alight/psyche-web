@@ -1,7 +1,7 @@
 :root {
   --color-background: rgb(255, 255, 255);
   --color-primary: rgb(34, 150, 243);
-  --color-surface: rgb(133, 153, 171);
+  --color-surface: cornsilk;
   --color-border: rgb(0, 0, 0);
 
   --width-content-max: 1200px;
@@ -17,4 +17,6 @@
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
   --font-size-lg: 1.25rem;
+
+  --font-color: rgb(0, 0, 0);
 }

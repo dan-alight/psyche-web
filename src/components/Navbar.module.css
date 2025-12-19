@@ -2,16 +2,19 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  background-color: #282c34;
-  padding: 1rem;
+  padding: var(--spacing-md);
   box-sizing: border-box;
-  color: white;
+  /* border-right: 1px solid var(--color-border); */
 }
 
 .navLink {
   display: block;
-  color: white;
+  color: var(--font-color);
   /* text-decoration: none; */
-  margin: 1rem 0;
-  font-size: 1.2rem;
+  
+  font-size: var(--font-size-lg);
+}
+
+.navLink[data-status="active"] {
+  font-weight: bold;
 }

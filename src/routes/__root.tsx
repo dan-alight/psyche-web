@@ -15,7 +15,11 @@ const queryClient = new QueryClient({
 });
 
 export const Route = createRootRoute({
-  component: () => (
+  component: RootComponent,
+});
+
+function RootComponent() {
+  return (
     <QueryClientProvider client={queryClient}>
       <div className={styles.rootContainer}>
         <Navbar />
@@ -38,5 +42,5 @@ export const Route = createRootRoute({
         ]}
       /> */}
     </QueryClientProvider>
-  ),
-});
+  );
+}
