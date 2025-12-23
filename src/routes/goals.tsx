@@ -33,8 +33,7 @@ function RouteComponent() {
   });
 
   const updateGoalMutation = useMutation({
-    mutationFn: ({ id, goal }: { id: number; goal: GoalUpdate }) =>
-      updateGoal(id, goal),
+    mutationFn: updateGoal,
     onSuccess: (updatedGoal) => {
       queryClient.setQueryData<GoalRead[]>(["goals"], (goals = []) =>
         goals.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
@@ -43,7 +42,7 @@ function RouteComponent() {
   });
 
   const deleteGoalMutation = useMutation({
-    mutationFn: (id: number) => deleteGoal(id),
+    mutationFn: deleteGoal,
     onSuccess: (_, id) => {
       queryClient.setQueryData<GoalRead[]>(["goals"], (goals = []) =>
         goals.filter((goal) => goal.id !== id)
@@ -199,7 +198,13 @@ async function createGoal(goal: GoalCreate): Promise<GoalRead> {
   return res.json();
 }
 
-async function updateGoal(id: number, goal: GoalUpdate): Promise<GoalRead> {
+async function updateGoal({
+  id,
+  goal,
+}: {
+  id: number;
+  goal: GoalUpdate;
+}): Promise<GoalRead> {
   const res = await fetch(`${apiConfig.HTTP_URL}/goals/${id}`, {
     method: "PATCH",
     headers: {

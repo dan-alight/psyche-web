@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { act, useState } from "react";
+import { useState } from "react";
 import type {
   OpenAiApiProviderRead,
   OpenAiApiProviderCreate,
@@ -75,8 +75,8 @@ function RouteComponent() {
     },
   });
 
-  const getModelsByPidMutation = useMutation({
-    mutationFn: getModelsByPid,
+  const refreshModelsMutation = useMutation({
+    mutationFn: refreshModels,
     onMutate: (variables) => {
       queryClient.setQueryData(
         ["models"],
@@ -157,9 +157,8 @@ function RouteComponent() {
       <button
         className={styles.modelsRefreshButton}
         onClick={() => {
-          getModelsByPidMutation.mutate({
+          refreshModelsMutation.mutate({
             pid: selectedProviderId,
-            refresh: true,
           });
         }}
       >
@@ -277,18 +276,15 @@ async function getModels(): Promise<OpenAiApiModelRead[]> {
   return res.json();
 }
 
-async function getModelsByPid({
+async function refreshModels({
   pid,
-  refresh = false,
 }: {
   pid: number;
-  refresh?: boolean;
 }): Promise<OpenAiApiModelRead[]> {
   const url = new URL(
-    `${apiConfig.HTTP_URL}/openai-api-providers/${pid}/models`
+    `${apiConfig.HTTP_URL}/openai-api-providers/${pid}/models/refresh`
   );
-  url.searchParams.set("refresh", refresh.toString());
-  const res = await fetch(url);
+  const res = await fetch(url, { method: "POST" });
   if (!res.ok) throw new Error("Failed to fetch models");
   return res.json();
 }

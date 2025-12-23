@@ -55,3 +55,19 @@ export interface OpenAiApiModelRead {
 export interface OpenAiModelUpdate {
   bookmarked?: boolean;
 }
+
+export interface JobRead {
+  id: number;
+  status: "pending" | "completed" | "failed";
+  info?: string;
+}
+
+export interface ActivityRead {
+  id: number;
+  description: string;
+  date: string; // ISO date string
+}
+
+export interface CalendarGenerationRequest {
+  // pass
+}
