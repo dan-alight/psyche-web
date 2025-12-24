@@ -19,7 +19,6 @@ export function useJobPolling({ jobId }: { jobId: number | null }) {
 }
 
 async function getJob(jobId: number) : Promise<JobRead> {
-  console.log(`Polling job with ID: ${jobId}`);
   const res = await fetch(`${apiConfig.HTTP_URL}/jobs/${jobId}`);
   if (!res.ok) throw new Error("Failed to fetch job");
   return res.json();

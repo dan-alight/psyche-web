@@ -82,7 +82,7 @@ function RouteComponent() {
               </button>
             </div>
           </div>
-          <p>{goal.description}</p>
+          <div className={styles.goalDescription}>{goal.description}</div>
         </div>
       ))}
       {goalModal === "create" && (

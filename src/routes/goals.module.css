@@ -36,6 +36,11 @@
   text-decoration: underline;
 }
 
+.goalDescription {
+  margin-bottom: var(--spacing-md);
+  /* color: red; */
+}
+
 .createGoalButton {
   align-self: center;
   padding: var(--spacing-md) var(--spacing-lg);
