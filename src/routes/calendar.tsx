@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useJobPolling } from "@/hooks/useJobPolling";
-import { useCalendarGenerationJobIdStore } from "@/store/useCalendarGenerationJobIdStore";
+import { useJobStore } from "@/store/useJobStore";
 import type {
   JobRead,
   ActivityRead,
@@ -21,19 +21,23 @@ function RouteComponent() {
     new Date().toISOString().split("T")[0]
   );
 
-  const { data: activities, isFetching: isFetchingActivities } = useQuery<
-    ActivityRead[]
-  >({
+  const { data: activities } = useQuery<ActivityRead[]>({
     queryKey: ["activities", isoDate],
     queryFn: () => getActivities(isoDate),
   });
 
-  const jobId = useCalendarGenerationJobIdStore(
-    (state) => state.calendarGenerationJobIds[isoDate] ?? null
-  );
-  const setJobId = useCalendarGenerationJobIdStore((state) => state.setJobId);
+  const generateCalendarUrlString = getGenerateCalendarUrl(isoDate).toString();
 
-  const { data: jobRead, isError } = useJobPolling({ jobId: jobId });
+  const storedJob = useJobStore((state) => {
+    const jobs = state.jobs[generateCalendarUrlString];
+    const job = jobs?.[jobs.length - 1];
+    // Only return the defined job if it's pending. Otherwise we need to start a new job.
+    if (job === undefined || job.status === "pending") return job;
+    return undefined;
+  });
+  const addJobId = useJobStore((state) => state.addJob);
+
+  const { data: jobRead, isError } = useJobPolling({ jobId: storedJob?.id });
   const isJobCompleted = jobRead?.status === "completed";
   const isJobFailed = jobRead?.status === "failed";
   const shouldStopPolling = isJobCompleted || isJobFailed || isError;
@@ -45,14 +49,12 @@ function RouteComponent() {
         queryKey: ["activities", isoDate],
       });
     }
-
-    setJobId(isoDate, null);
-  }, [shouldStopPolling, isJobCompleted, isoDate, queryClient, setJobId]);
+  }, [shouldStopPolling, isJobCompleted, isoDate, queryClient]);
 
   const generateCalendarMutation = useMutation({
     mutationFn: generateCalendar,
     onSuccess: (data) => {
-      setJobId(isoDate, data.id);
+      addJobId(generateCalendarUrlString, data);
     },
   });
 
@@ -71,9 +73,14 @@ function RouteComponent() {
   );
 }
 
-async function generateCalendar(isoDate: string): Promise<JobRead> {
-  const url = new URL(`${apiConfig.HTTP_URL}/calendar/generate`);
+function getGenerateCalendarUrl(isoDate: string): URL {
+  const url = new URL(`${apiConfig.HTTP_URL}/calendar:generate`);
   url.searchParams.append("date", isoDate);
+  return url;
+}
+
+async function generateCalendar(isoDate: string): Promise<JobRead> {
+  const url = getGenerateCalendarUrl(isoDate);
   const res = await fetch(url, {
     method: "POST",
     headers: {

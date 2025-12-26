@@ -5,6 +5,7 @@ export default function Navbar() {
   const navLinks = [
     { to: "/calendar", label: "Calendar" },
     { to: "/goals", label: "Goals" },
+    { to: "/jobs", label: "Jobs" },
     { to: "/settings", label: "Settings" },
   ];
 

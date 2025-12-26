@@ -2,16 +2,22 @@ export interface GoalRead {
   id: number;
   title: string;
   description: string;
+  initial_progress: string;
+  strategy_generation_guidelines: string;
 }
 
 export interface GoalCreate {
   title: string;
   description: string;
+  initial_progress: string;
+  strategy_generation_guidelines: string;
 }
 
 export interface GoalUpdate {
   title?: string;
   description?: string;
+  initial_progress?: string;
+  strategy_generation_guidelines?: string;
 }
 
 export interface OpenAiApiProviderRead {
