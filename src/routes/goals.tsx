@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
 import type { GoalRead, GoalCreate, GoalUpdate, JobRead } from "@/types/api";
+import { useJobStore } from "@/store/useJobStore";
 import Modal from "@/components/Modal";
 import styles from "./goals.module.css";
 
@@ -14,6 +15,8 @@ function RouteComponent() {
   const queryClient = useQueryClient();
   const [goalModal, setGoalModal] = useState<"create" | "update" | null>(null);
   const [goalSelected, setGoalSelected] = useState<GoalRead | null>(null);
+
+  const { addJob } = useJobStore();
 
   const { data: goals } = useQuery<GoalRead[]>({
     queryKey: ["goals"],
@@ -48,7 +51,11 @@ function RouteComponent() {
     },
   });
 
-  const generateStrategyMutation = useMutation({});
+  const generateStrategyMutation = useMutation({
+    mutationFn: generateStrategy,
+    onSuccess: (data, variables) =>
+      addJob(getGenerateStrategyUrl(variables).toString(), data),
+  });
 
   return (
     <div className={styles.goalsContainer}>
@@ -63,7 +70,13 @@ function RouteComponent() {
           <div className={styles.goalHeader}>
             <h2 className={styles.goalTitle}>{goal.title}</h2>
             <div className={styles.goalHeaderButtonsContainer}>
-              <button>Generate Strategy</button>
+              <button
+                onClick={() => {
+                  generateStrategyMutation.mutate(goal.id);
+                }}
+              >
+                Generate Strategy
+              </button>
               <button
                 onClick={() => {
                   setGoalSelected(goal);
@@ -88,13 +101,7 @@ function RouteComponent() {
         <GoalModal
           close={() => setGoalModal(null)}
           save={(goalFormFields: GoalFormFields) => {
-            createGoalMutation.mutate({
-              title: goalFormFields.title,
-              description: goalFormFields.description,
-              initial_progress: goalFormFields.initial_progress,
-              strategy_generation_guidelines:
-                goalFormFields.strategy_generation_guidelines,
-            });
+            createGoalMutation.mutate(goalFormFields);
           }}
         />
       )}
@@ -108,10 +115,7 @@ function RouteComponent() {
           save={(goalFormFields: GoalFormFields) => {
             updateGoalMutation.mutate({
               id: goalSelected.id,
-              goal: {
-                title: goalFormFields.title,
-                description: goalFormFields.description,
-              },
+              goal: goalFormFields,
             });
           }}
         />
@@ -124,7 +128,7 @@ interface GoalFormFields {
   title: string;
   description: string;
   initial_progress: string;
-  strategy_generation_guidelines: string;
+  strategy_guidelines: string;
 }
 
 function GoalModal({
@@ -140,9 +144,7 @@ function GoalModal({
     title: goal ? goal.title : "",
     description: goal ? goal.description : "",
     initial_progress: goal ? goal.initial_progress : "",
-    strategy_generation_guidelines: goal
-      ? goal.strategy_generation_guidelines
-      : "",
+    strategy_guidelines: goal ? goal.strategy_guidelines : "",
   });
 
   return (
@@ -180,10 +182,10 @@ function GoalModal({
               })
             }
           />
-          <label htmlFor="goal-initial-progress">Current Progress</label>
+          <label htmlFor="goal-initial-progress">Initial progress</label>
           <textarea
             id="goal-initial-progress"
-            placeholder="Current progress"
+            placeholder="Initial progress"
             value={goalFormFields.initial_progress}
             onChange={(e) =>
               setGoalFormFields({
@@ -192,15 +194,15 @@ function GoalModal({
               })
             }
           />
-          <label htmlFor="goal-strategy-generation-guidelines">Strategy</label>
+          <label htmlFor="goal-strategy-guidelines">Strategy</label>
           <textarea
-            id="goal-strategy-generation-guidelines"
+            id="goal-strategy-guidelines"
             placeholder="Strategy"
-            value={goalFormFields.strategy_generation_guidelines}
+            value={goalFormFields.strategy_guidelines}
             onChange={(e) =>
               setGoalFormFields({
                 ...goalFormFields,
-                strategy_generation_guidelines: e.target.value,
+                strategy_guidelines: e.target.value,
               })
             }
           />

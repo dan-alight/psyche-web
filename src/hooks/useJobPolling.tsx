@@ -2,7 +2,7 @@ import { useQuery, skipToken } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
 import type { JobRead } from "@/types/api";
 
-export function useJobPolling({ jobId }: { jobId: number | null }) {
+export function useJobPolling({ jobId }: { jobId: number | undefined }) {
   return useQuery<JobRead>({
     queryKey: ["job", jobId],
     queryFn: jobId ? () => getJob(jobId) : skipToken,

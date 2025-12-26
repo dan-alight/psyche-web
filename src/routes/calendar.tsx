@@ -31,11 +31,11 @@ function RouteComponent() {
   const storedJob = useJobStore((state) => {
     const jobs = state.jobs[generateCalendarUrlString];
     const job = jobs?.[jobs.length - 1];
-    // Only return the defined job if it's pending. Otherwise we need to start a new job.
+    // Only return the defined job if it's pending. Otherwise start a new job.
     if (job === undefined || job.status === "pending") return job;
     return undefined;
   });
-  const addJobId = useJobStore((state) => state.addJob);
+  const { addJob } = useJobStore();
 
   const { data: jobRead, isError } = useJobPolling({ jobId: storedJob?.id });
   const isJobCompleted = jobRead?.status === "completed";
@@ -53,9 +53,7 @@ function RouteComponent() {
 
   const generateCalendarMutation = useMutation({
     mutationFn: generateCalendar,
-    onSuccess: (data) => {
-      addJobId(generateCalendarUrlString, data);
-    },
+    onSuccess: (data) => addJob(generateCalendarUrlString, data),
   });
 
   return (
