@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
 import type { GoalRead, GoalCreate, GoalUpdate, JobRead } from "@/types/api";
-import { useJobStore } from "@/store/useJobStore";
 import Modal from "@/components/Modal";
 import styles from "./goals.module.css";
 
@@ -16,8 +15,6 @@ function RouteComponent() {
   const [goalModal, setGoalModal] = useState<"create" | "update" | null>(null);
   const [goalSelected, setGoalSelected] = useState<GoalRead | null>(null);
 
-  const { addJob } = useJobStore();
-
   const { data: goals } = useQuery<GoalRead[]>({
     queryKey: ["goals"],
     queryFn: fetchGoals,
@@ -26,18 +23,17 @@ function RouteComponent() {
   const createGoalMutation = useMutation({
     mutationFn: createGoal,
     onSuccess: (goal) => {
-      queryClient.setQueryData<GoalRead[]>(["goals"], (goals = []) => [
-        ...goals,
-        goal,
-      ]);
+      queryClient.setQueryData<GoalRead[]>(["goals"], (goals) =>
+        goals ? [...goals, goal] : goals
+      );
     },
   });
 
   const updateGoalMutation = useMutation({
     mutationFn: updateGoal,
     onSuccess: (updatedGoal) => {
-      queryClient.setQueryData<GoalRead[]>(["goals"], (goals = []) =>
-        goals.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
+      queryClient.setQueryData<GoalRead[]>(["goals"], (goals) =>
+        goals?.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
       );
     },
   });
@@ -45,16 +41,14 @@ function RouteComponent() {
   const deleteGoalMutation = useMutation({
     mutationFn: deleteGoal,
     onSuccess: (_, id) => {
-      queryClient.setQueryData<GoalRead[]>(["goals"], (goals = []) =>
-        goals.filter((goal) => goal.id !== id)
+      queryClient.setQueryData<GoalRead[]>(["goals"], (goals) =>
+        goals?.filter((goal) => goal.id !== id)
       );
     },
   });
 
   const generateStrategyMutation = useMutation({
     mutationFn: generateStrategy,
-    onSuccess: (data, variables) =>
-      addJob(getGenerateStrategyUrl(variables).toString(), data),
   });
 
   return (
@@ -124,12 +118,7 @@ function RouteComponent() {
   );
 }
 
-interface GoalFormFields {
-  title: string;
-  description: string;
-  initial_progress: string;
-  strategy_guidelines: string;
-}
+type GoalFormFields = GoalCreate;
 
 function GoalModal({
   close,
@@ -194,10 +183,10 @@ function GoalModal({
               })
             }
           />
-          <label htmlFor="goal-strategy-guidelines">Strategy</label>
+          <label htmlFor="goal-strategy-guidelines">Strategy guidelines</label>
           <textarea
             id="goal-strategy-guidelines"
-            placeholder="Strategy"
+            placeholder="Strategy guidelines"
             value={goalFormFields.strategy_guidelines}
             onChange={(e) =>
               setGoalFormFields({
@@ -268,14 +257,11 @@ async function deleteGoal(id: number): Promise<void> {
   if (!res.ok) throw new Error("Network response was not ok");
 }
 
-function getGenerateStrategyUrl(id: number): URL {
-  const url = new URL(`${apiConfig.HTTP_URL}/goals/${id}/strategy:generate`);
-  return url;
-}
-
 async function generateStrategy(id: number): Promise<JobRead> {
-  const url = getGenerateStrategyUrl(id);
-  const res = await fetch(url, { method: "POST" });
+  const res = await fetch(
+    `${apiConfig.HTTP_URL}/goals/${id}/strategy:generate`,
+    { method: "POST" }
+  );
   if (!res.ok) throw new Error("Network response was not ok");
   return res.json();
 }

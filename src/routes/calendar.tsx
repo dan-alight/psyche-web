@@ -1,59 +1,77 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import * as z from "zod";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { useJobPolling } from "@/hooks/useJobPolling";
-import { useJobStore } from "@/store/useJobStore";
+import { jobsQueryOptions } from "@/hooks/useJobs";
 import type {
   JobRead,
   ActivityRead,
   CalendarGenerationRequest,
 } from "@/types/api";
+import { localISODateString } from "@/utils";
 import styles from "./calendar.module.css";
 import { apiConfig } from "@/apiConfig";
 
+const calendarSearchSchema = z.object({
+  date: z.iso
+    .date()
+    .catch(() => localISODateString())
+    .default(() => localISODateString()),
+});
+
 export const Route = createFileRoute("/calendar")({
   component: RouteComponent,
+  validateSearch: calendarSearchSchema,
 });
 
 function RouteComponent() {
+  const { date } = Route.useSearch();
+  return <CalendarContent isoDate={date} key={date} />;
+}
+
+function CalendarContent({ isoDate }: { isoDate: string }) {
   const queryClient = useQueryClient();
-  const [isoDate, setIsoDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
 
   const { data: activities } = useQuery<ActivityRead[]>({
     queryKey: ["activities", isoDate],
     queryFn: () => getActivities(isoDate),
   });
 
-  const generateCalendarUrlString = getGenerateCalendarUrl(isoDate).toString();
+  const [trackedJobId, setTrackedJobId] = useState<number | null>(null);
 
-  const storedJob = useJobStore((state) => {
-    const jobs = state.jobs[generateCalendarUrlString];
-    const job = jobs?.[jobs.length - 1];
-    // Only return the defined job if it's pending. Otherwise start a new job.
-    if (job === undefined || job.status === "pending") return job;
-    return undefined;
+  const { data: trackedJob } = useQuery({
+    ...jobsQueryOptions,
+    enabled: !!trackedJobId,
+    staleTime: Infinity,
+    select: (jobs) => jobs.find((job) => job.id === trackedJobId),
   });
-  const { addJob } = useJobStore();
-
-  const { data: jobRead, isError } = useJobPolling({ jobId: storedJob?.id });
-  const isJobCompleted = jobRead?.status === "completed";
-  const isJobFailed = jobRead?.status === "failed";
-  const shouldStopPolling = isJobCompleted || isJobFailed || isError;
 
   useEffect(() => {
-    if (!shouldStopPolling) return;
-    if (isJobCompleted) {
-      queryClient.invalidateQueries({
-        queryKey: ["activities", isoDate],
-      });
+    if (!trackedJob) return;
+    if (trackedJob.status === "pending") return;
+
+    if (trackedJob.status === "done") {
+      queryClient.invalidateQueries({ queryKey: ["activities", isoDate] });
     }
-  }, [shouldStopPolling, isJobCompleted, isoDate, queryClient]);
+
+    setTrackedJobId(null);
+  }, [trackedJob, queryClient, setTrackedJobId, isoDate]);
 
   const generateCalendarMutation = useMutation({
     mutationFn: generateCalendar,
-    onSuccess: (data) => addJob(generateCalendarUrlString, data),
+    onSuccess: async (data) => {
+      await queryClient.cancelQueries(
+        { queryKey: ["jobs"] },
+        { silent: true, revert: false }
+      );
+      queryClient.setQueryData<JobRead[]>(["jobs"], (oldJobs) => {
+        if (!oldJobs) return [data];
+        const exists = oldJobs.some((job) => job.id === data.id);
+        if (exists) return oldJobs;
+        return [...oldJobs, data];
+      });
+      setTrackedJobId(data.id);
+    },
   });
 
   return (
@@ -71,20 +89,15 @@ function RouteComponent() {
   );
 }
 
-function getGenerateCalendarUrl(isoDate: string): URL {
+async function generateCalendar(isoDate: string): Promise<JobRead> {
   const url = new URL(`${apiConfig.HTTP_URL}/calendar:generate`);
   url.searchParams.append("date", isoDate);
-  return url;
-}
-
-async function generateCalendar(isoDate: string): Promise<JobRead> {
-  const url = getGenerateCalendarUrl(isoDate);
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ date: isoDate }),
+    body: JSON.stringify({}),
   });
   if (!res.ok) throw new Error("Failed to generate calendar for the date");
   return res.json();

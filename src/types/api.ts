@@ -13,12 +13,7 @@ export interface GoalCreate {
   strategy_guidelines: string;
 }
 
-export interface GoalUpdate {
-  title?: string;
-  description?: string;
-  initial_progress?: string;
-  strategy_guidelines?: string;
-}
+export type GoalUpdate = Partial<GoalCreate>;
 
 export interface OpenAiApiProviderRead {
   id: number;
@@ -31,10 +26,7 @@ export interface OpenAiApiProviderCreate {
   base_url: string;
 }
 
-export interface OpenAiApiProviderUpdate {
-  name?: string;
-  base_url?: string;
-}
+export type OpenAiApiProviderUpdate = Partial<OpenAiApiKeyCreate>;
 
 export interface OpenAiApiKeyRead {
   id: number;
@@ -64,7 +56,7 @@ export interface OpenAiModelUpdate {
 
 export interface JobRead {
   id: number;
-  status: "pending" | "completed" | "failed";
+  status: "pending" | "done" | "error";
   info?: string;
 }
 
@@ -76,4 +68,8 @@ export interface ActivityRead {
 
 export interface CalendarGenerationRequest {
   // pass
+}
+
+export interface JobBatchRequest {
+  job_ids: number[];
 }

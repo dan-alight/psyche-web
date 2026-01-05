@@ -4,6 +4,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
+import { useJobPolling } from "@/hooks/useJobPolling";
 import styles from "./__root.module.css";
 
 const queryClient = new QueryClient({
@@ -21,6 +22,7 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
+      <JobPoller />
       <div className={styles.rootContainer}>
         <Navbar />
         <Outlet />
@@ -43,4 +45,9 @@ function RootComponent() {
       /> */}
     </QueryClientProvider>
   );
+}
+
+function JobPoller() {
+  useJobPolling();
+  return null;
 }
