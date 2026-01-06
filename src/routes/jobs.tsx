@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useJobs } from "@/hooks/useJobs";
+import { useJobs } from "@/queries/useJobs";
 
 export const Route = createFileRoute("/jobs")({
   component: RouteComponent,

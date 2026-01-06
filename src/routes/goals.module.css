@@ -48,7 +48,7 @@
   border-radius: var(--radius-sm);
 }
 
-.goalModalContainer {
+.modalContainer {
   display: flex;
   flex-direction: column;
   background-color: var(--color-surface);
@@ -58,6 +58,11 @@
   max-height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
+}
+
+.modalContainer select,
+.modalContainer button {
+  width: fit-content;
 }
 
 .goalModalForm {
@@ -100,3 +105,4 @@
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-md);
 }
+

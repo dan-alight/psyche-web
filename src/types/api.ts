@@ -70,6 +70,10 @@ export interface CalendarGenerationRequest {
   // pass
 }
 
+export interface StrategyGenerationRequest {
+  model_id: number;
+}
+
 export interface JobBatchRequest {
   job_ids: number[];
 }

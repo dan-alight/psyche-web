@@ -12,6 +12,8 @@ import type {
   OpenAiModelUpdate,
 } from "@/types/api";
 import { apiConfig } from "@/apiConfig";
+import { useOpenAiApiModels } from "@/queries/useOpenAiApiModels";
+import { useOpenAiApiProviders } from "@/queries/useOpenAiApiProviders";
 import { replaceStringCenterWithEllipsis } from "@/utils";
 import styles from "./settings.module.css";
 
@@ -21,94 +23,80 @@ export const Route = createFileRoute("/settings")({
 
 function RouteComponent() {
   const queryClient = useQueryClient();
-  const { data: providers } = useQuery({
-    queryKey: ["providers"],
-    queryFn: getProviders,
-  });
+  const { data: providers } = useOpenAiApiProviders();
   const { data: keys } = useQuery({
     queryKey: ["keys"],
     queryFn: getKeys,
   });
 
-  const { data: models } = useQuery({
-    queryKey: ["models"],
-    queryFn: getModels,
-  });
-  const [selectedProviderId, setSelectedProviderId] = useState<number>(1);
-  const selectedProvider: OpenAiApiProviderRead | undefined =
-    providers && providers.length > 0
-      ? providers.find((p) => p.id === selectedProviderId)
-      : undefined;
+  const { data: models } = useOpenAiApiModels();
+
+  const [selectedProviderId, setSelectedProviderId] = useState<number | null>(
+    null
+  );
+  const selectedProviderIdWithDefault =
+    selectedProviderId ?? providers?.[0]?.id;
+
+  const selectedProvider = providers?.find(
+    (p) => p.id === selectedProviderIdWithDefault
+  );
+
   const activeKey = keys?.find(
-    (key) => key.provider_id === selectedProviderId && key.active
+    (key) => key.provider_id === selectedProvider?.id && key.active
   );
 
   const updateKeyMutation = useMutation({
     mutationFn: updateKey,
     onMutate: (variables) => {
       if (variables.key.active) {
-        queryClient.setQueryData(
-          ["keys"],
-          (old: OpenAiApiKeyRead[] | undefined) => {
-            if (!old) return old;
-            const providerId = old.find(
-              (k) => k.id === variables.id
-            )?.provider_id;
-            if (!providerId) return old;
-            return old.map((k) =>
-              k.provider_id === providerId
-                ? { ...k, active: k.id === variables.id }
-                : k
-            );
-          }
-        );
+        queryClient.setQueryData<OpenAiApiKeyRead[]>(["keys"], (old) => {
+          if (!old) return old;
+          const providerId = old.find(
+            (k) => k.id === variables.id
+          )?.provider_id;
+          if (!providerId) return old;
+          return old.map((k) =>
+            k.provider_id === providerId
+              ? { ...k, active: k.id === variables.id }
+              : k
+          );
+        });
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["keys"],
-        (old: OpenAiApiKeyRead[] | undefined) => {
-          if (!old) return old;
-          return old.map((key) => (key.id === data.id ? data : key));
-        }
-      );
+      queryClient.setQueryData<OpenAiApiKeyRead[]>(["keys"], (old) => {
+        if (!old) return old;
+        return old.map((key) => (key.id === data.id ? data : key));
+      });
     },
   });
 
   const refreshModelsMutation = useMutation({
     mutationFn: refreshModels,
-    onMutate: (variables) => {
-      queryClient.setQueryData(
-        ["models"],
-        (old: OpenAiApiModelRead[] | undefined) => {
-          if (!old) return old;
-          return old.filter((model) => model.provider_id !== variables.pid);
-        }
-      );
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["models"],
-        (old: OpenAiApiModelRead[] | undefined) => {
-          if (!old) return data;
-          return [...old, ...data];
-        }
-      );
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData<OpenAiApiModelRead[]>(["models"], (old) => {
+        if (!old) return data;
+        const otherProviderModels = old.filter(
+          (model) => model.provider_id !== variables.pid
+        );
+        return [...otherProviderModels, ...data];
+      });
     },
   });
 
   const updateModelMutation = useMutation({
     mutationFn: updateModel,
-    onMutate: (variables) => {
-      queryClient.setQueryData(
-        ["models"],
-        (old: OpenAiApiModelRead[] | undefined) => {
-          if (!old) return old;
-          return old.map((model) =>
-            model.id === variables.id ? { ...model, ...variables.model } : model
-          );
-        }
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries(
+        { queryKey: ["models"] },
+        { silent: true, revert: false }
       );
+      queryClient.setQueryData<OpenAiApiModelRead[]>(["models"], (old) => {
+        if (!old) return old;
+        return old.map((model) =>
+          model.id === variables.id ? { ...model, ...variables.model } : model
+        );
+      });
     },
   });
 
@@ -120,7 +108,7 @@ function RouteComponent() {
         value={selectedProvider?.id}
         onChange={(e) =>
           setSelectedProviderId(
-            providers?.find((p) => p.id === Number(e.target.value))?.id ?? 1
+            providers?.find((p) => p.id === Number(e.target.value))?.id ?? null
           )
         }
       >
@@ -144,7 +132,7 @@ function RouteComponent() {
         }}
       >
         {keys
-          ?.filter((key) => key.provider_id === selectedProviderId)
+          ?.filter((key) => key.provider_id === selectedProvider?.id)
           .map((key) => {
             return (
               <option key={key.id} value={key.id}>
@@ -156,9 +144,10 @@ function RouteComponent() {
       <h3>Available Models</h3>
       <button
         className={styles.modelsRefreshButton}
+        disabled={!selectedProvider}
         onClick={() => {
           refreshModelsMutation.mutate({
-            pid: selectedProviderId,
+            pid: selectedProvider!.id,
           });
         }}
       >
@@ -166,7 +155,7 @@ function RouteComponent() {
       </button>
       <ul className={styles.modelsList}>
         {models
-          ?.filter((model) => model.provider_id === selectedProviderId)
+          ?.filter((model) => model.provider_id === selectedProvider?.id)
           .map((model) => (
             <li key={model.id} className={styles.modelItem}>
               <input
@@ -185,12 +174,6 @@ function RouteComponent() {
       </ul>
     </div>
   );
-}
-
-async function getProviders(): Promise<OpenAiApiProviderRead[]> {
-  const res = await fetch(`${apiConfig.HTTP_URL}/openai-api-providers`);
-  if (!res.ok) throw new Error("Failed to get providers");
-  return res.json();
 }
 
 async function createProvider(
@@ -268,12 +251,6 @@ async function deleteKey(id: number): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) throw new Error("Failed to delete API key");
-}
-
-async function getModels(): Promise<OpenAiApiModelRead[]> {
-  const res = await fetch(`${apiConfig.HTTP_URL}/openai-api-models`);
-  if (!res.ok) throw new Error("Failed to fetch models");
-  return res.json();
 }
 
 async function refreshModels({

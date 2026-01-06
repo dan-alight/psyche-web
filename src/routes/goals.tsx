@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
-import type { GoalRead, GoalCreate, GoalUpdate, JobRead } from "@/types/api";
+import { openaiApiModelsQueryOptions } from "@/queries/useOpenAiApiModels";
+import { useOpenAiApiProviders } from "@/queries/useOpenAiApiProviders";
+import type {
+  GoalRead,
+  GoalCreate,
+  GoalUpdate,
+  JobRead,
+  StrategyGenerationRequest,
+} from "@/types/api";
 import Modal from "@/components/Modal";
 import styles from "./goals.module.css";
 
@@ -12,12 +20,14 @@ export const Route = createFileRoute("/goals")({
 
 function RouteComponent() {
   const queryClient = useQueryClient();
-  const [goalModal, setGoalModal] = useState<"create" | "update" | null>(null);
+  const [modal, setModal] = useState<"create" | "update" | "strategy" | null>(
+    null
+  );
   const [goalSelected, setGoalSelected] = useState<GoalRead | null>(null);
 
   const { data: goals } = useQuery<GoalRead[]>({
     queryKey: ["goals"],
-    queryFn: fetchGoals,
+    queryFn: getGoals,
   });
 
   const createGoalMutation = useMutation({
@@ -47,15 +57,11 @@ function RouteComponent() {
     },
   });
 
-  const generateStrategyMutation = useMutation({
-    mutationFn: generateStrategy,
-  });
-
   return (
     <div className={styles.goalsContainer}>
       <button
         className={styles.createGoalButton}
-        onClick={() => setGoalModal("create")}
+        onClick={() => setModal("create")}
       >
         Create Goal
       </button>
@@ -66,7 +72,8 @@ function RouteComponent() {
             <div className={styles.goalHeaderButtonsContainer}>
               <button
                 onClick={() => {
-                  generateStrategyMutation.mutate(goal.id);
+                  setGoalSelected(goal);
+                  setModal("strategy");
                 }}
               >
                 Generate Strategy
@@ -74,14 +81,15 @@ function RouteComponent() {
               <button
                 onClick={() => {
                   setGoalSelected(goal);
-                  setGoalModal("update");
+                  setModal("update");
                 }}
               >
                 Edit
               </button>
               <button
                 onClick={() => {
-                  deleteGoalMutation.mutate(goal.id);
+                  if (confirm("Are you sure you want to delete this goal?"))
+                    deleteGoalMutation.mutate(goal.id);
                 }}
               >
                 Delete
@@ -91,18 +99,18 @@ function RouteComponent() {
           <div className={styles.goalDescription}>{goal.description}</div>
         </div>
       ))}
-      {goalModal === "create" && (
+      {modal === "create" && (
         <GoalModal
-          close={() => setGoalModal(null)}
+          close={() => setModal(null)}
           save={(goalFormFields: GoalFormFields) => {
             createGoalMutation.mutate(goalFormFields);
           }}
         />
       )}
-      {goalModal === "update" && goalSelected && (
+      {modal === "update" && goalSelected && (
         <GoalModal
           close={() => {
-            setGoalModal(null);
+            setModal(null);
             setGoalSelected(null);
           }}
           goal={goalSelected}
@@ -114,7 +122,90 @@ function RouteComponent() {
           }}
         />
       )}
+      {modal === "strategy" && goalSelected && (
+        <GenerateStrategyModal
+          goal={goalSelected}
+          close={() => {
+            setModal(null);
+            setGoalSelected(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function GenerateStrategyModal({
+  goal,
+  close,
+}: {
+  goal: GoalRead;
+  close: () => void;
+}) {
+  const { data: models } = useQuery({
+    ...openaiApiModelsQueryOptions,
+    select: (models) => models.filter((model) => model.bookmarked),
+  });
+  const { data: providers } = useOpenAiApiProviders();
+
+  const modelsWithProviders = useMemo(() => {
+    return models?.map((model) => {
+      return {
+        ...model,
+        provider: providers?.find(
+          (provider) => provider.id === model.provider_id
+        ),
+      };
+    });
+  }, [models, providers]);
+
+  const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
+  const effectiveModelId = selectedModelId ?? models?.[0]?.id;
+  const selectedModel = modelsWithProviders?.find(
+    (model) => model.id === effectiveModelId
+  );
+
+  const generateStrategyMutation = useMutation({
+    mutationFn: generateStrategy,
+  });
+
+  return (
+    <Modal onClose={close}>
+      <div className={styles.modalContainer}>
+        <h2>Generate strategy</h2>
+        <h3>Select model</h3>
+        <select
+          value={selectedModel?.id}
+          onChange={(e) =>
+            setSelectedModelId(
+              models?.find((model) => model.id === Number(e.target.value))
+                ?.id ?? null
+            )
+          }
+        >
+          {modelsWithProviders?.map((model) => {
+            return (
+              <option key={model.id} value={model.id}>
+                {model.provider?.name ?? "Unknown"}
+                {"/"}
+                {model.name}
+              </option>
+            );
+          })}
+        </select>
+        <button
+          disabled={!selectedModel}
+          onClick={() =>
+            generateStrategyMutation.mutate({
+              id: goal.id,
+              request: { model_id: selectedModel!.id },
+            })
+          }
+        >
+          Generate
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -137,8 +228,8 @@ function GoalModal({
   });
 
   return (
-    <Modal>
-      <div className={styles.goalModalContainer}>
+    <Modal onClose={close}>
+      <div className={styles.modalContainer}>
         <h2>{goal ? "Edit Goal" : "New Goal"}</h2>
         <form
           onSubmit={(e) => {
@@ -214,7 +305,7 @@ function GoalModal({
   );
 }
 
-async function fetchGoals(): Promise<GoalRead[]> {
+async function getGoals(): Promise<GoalRead[]> {
   const res = await fetch(`${apiConfig.HTTP_URL}/goals`);
   if (!res.ok) throw new Error("Network response was not ok");
   return res.json();
@@ -257,10 +348,20 @@ async function deleteGoal(id: number): Promise<void> {
   if (!res.ok) throw new Error("Network response was not ok");
 }
 
-async function generateStrategy(id: number): Promise<JobRead> {
+async function generateStrategy({
+  id,
+  request,
+}: {
+  id: number;
+  request: StrategyGenerationRequest;
+}): Promise<JobRead> {
   const res = await fetch(
     `${apiConfig.HTTP_URL}/goals/${id}/strategy:generate`,
-    { method: "POST" }
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }
   );
   if (!res.ok) throw new Error("Network response was not ok");
   return res.json();

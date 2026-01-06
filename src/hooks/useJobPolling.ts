@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useQueryClient, useQuery, skipToken } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
-import { useJobs } from "./useJobs";
+import { useJobs } from "@/queries/useJobs";
 import type { JobBatchRequest, JobRead } from "@/types/api";
 
 export function useJobPolling() {

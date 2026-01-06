@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import * as z from "zod";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { jobsQueryOptions } from "@/hooks/useJobs";
+import { jobsQueryOptions } from "@/queries/useJobs";
 import type {
   JobRead,
   ActivityRead,
