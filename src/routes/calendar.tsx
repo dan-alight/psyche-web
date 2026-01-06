@@ -9,6 +9,7 @@ import type {
   CalendarGenerationRequest,
 } from "@/types/api";
 import { localISODateString } from "@/utils";
+import { useJobMutation } from "@/mutations/useJobMutation";
 import styles from "./calendar.module.css";
 import { apiConfig } from "@/apiConfig";
 
@@ -37,41 +38,10 @@ function CalendarContent({ isoDate }: { isoDate: string }) {
     queryFn: () => getActivities(isoDate),
   });
 
-  const [trackedJobId, setTrackedJobId] = useState<number | null>(null);
-
-  const { data: trackedJob } = useQuery({
-    ...jobsQueryOptions,
-    enabled: !!trackedJobId,
-    staleTime: Infinity,
-    select: (jobs) => jobs.find((job) => job.id === trackedJobId),
-  });
-
-  useEffect(() => {
-    if (!trackedJob) return;
-    if (trackedJob.status === "pending") return;
-
-    if (trackedJob.status === "done") {
-      queryClient.invalidateQueries({ queryKey: ["activities", isoDate] });
-    }
-
-    setTrackedJobId(null);
-  }, [trackedJob, queryClient, setTrackedJobId, isoDate]);
-
-  const generateCalendarMutation = useMutation({
+  const generateCalendarMutation = useJobMutation({
     mutationFn: generateCalendar,
-    onSuccess: async (data) => {
-      await queryClient.cancelQueries(
-        { queryKey: ["jobs"] },
-        { silent: true, revert: false }
-      );
-      queryClient.setQueryData<JobRead[]>(["jobs"], (oldJobs) => {
-        if (!oldJobs) return [data];
-        const exists = oldJobs.some((job) => job.id === data.id);
-        if (exists) return oldJobs;
-        return [...oldJobs, data];
-      });
-      setTrackedJobId(data.id);
-    },
+    onJobDone: () =>
+      queryClient.invalidateQueries({ queryKey: ["activities", isoDate] }),
   });
 
   return (

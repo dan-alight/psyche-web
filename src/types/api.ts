@@ -77,3 +77,9 @@ export interface StrategyGenerationRequest {
 export interface JobBatchRequest {
   job_ids: number[];
 }
+
+export interface GoalStrategyRead {
+  id: number;
+  goal_id: number;
+  strategy: string;
+}

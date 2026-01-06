@@ -1,6 +1,11 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import {
+  useQueryClient,
+  useQuery,
+  useMutation,
+  type UseMutationResult,
+} from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
 import { openaiApiModelsQueryOptions } from "@/queries/useOpenAiApiModels";
 import { useOpenAiApiProviders } from "@/queries/useOpenAiApiProviders";
@@ -10,7 +15,9 @@ import type {
   GoalUpdate,
   JobRead,
   StrategyGenerationRequest,
+  GoalStrategyRead,
 } from "@/types/api";
+import { useJobMutation } from "@/mutations/useJobMutation";
 import Modal from "@/components/Modal";
 import styles from "./goals.module.css";
 
@@ -28,6 +35,15 @@ function RouteComponent() {
   const { data: goals } = useQuery<GoalRead[]>({
     queryKey: ["goals"],
     queryFn: getGoals,
+  });
+
+  /* const { data: strategies } = useQuery<GoalStrategyRead[]>({}); */
+
+  const generateStrategyMutation = useJobMutation({
+    mutationFn: generateStrategy,
+    onJobDone: () => {
+      console.log("ya got me");
+    },
   });
 
   const createGoalMutation = useMutation({
@@ -129,6 +145,7 @@ function RouteComponent() {
             setModal(null);
             setGoalSelected(null);
           }}
+          generateStrategyMutation={generateStrategyMutation}
         />
       )}
     </div>
@@ -138,9 +155,15 @@ function RouteComponent() {
 function GenerateStrategyModal({
   goal,
   close,
+  generateStrategyMutation,
 }: {
   goal: GoalRead;
   close: () => void;
+  generateStrategyMutation: UseMutationResult<
+    JobRead,
+    Error,
+    { id: number; request: StrategyGenerationRequest }
+  >;
 }) {
   const { data: models } = useQuery({
     ...openaiApiModelsQueryOptions,
@@ -164,10 +187,6 @@ function GenerateStrategyModal({
   const selectedModel = modelsWithProviders?.find(
     (model) => model.id === effectiveModelId
   );
-
-  const generateStrategyMutation = useMutation({
-    mutationFn: generateStrategy,
-  });
 
   return (
     <Modal onClose={close}>
@@ -195,12 +214,13 @@ function GenerateStrategyModal({
         </select>
         <button
           disabled={!selectedModel}
-          onClick={() =>
+          onClick={() => {
             generateStrategyMutation.mutate({
               id: goal.id,
               request: { model_id: selectedModel!.id },
-            })
-          }
+            });
+            close();
+          }}
         >
           Generate
         </button>
@@ -364,5 +384,11 @@ async function generateStrategy({
     }
   );
   if (!res.ok) throw new Error("Network response was not ok");
+  return res.json();
+}
+
+async function getStrategy(gid: number): Promise<GoalStrategyRead> {
+  const res = await fetch(`${apiConfig.HTTP_URL}/goals/${gid}/strategy`);
+  if (!res.ok) throw new Error("Could not get strategy");
   return res.json();
 }
