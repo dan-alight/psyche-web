@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   useQueryClient,
   useQuery,
@@ -19,10 +19,12 @@ import type {
   OpenAiApiModelRead,
 } from "@/types/api";
 import { useJobMutation } from "@/mutations/useJobMutation";
+import { useGoals } from "@/queries/useGoals";
 import Modal from "@/components/Modal";
-import styles from "./goals.module.css";
+import styles from "./index.module.css";
+import sharedStyles from "@/styles/shared.module.css";
 
-export const Route = createFileRoute("/goals")({
+export const Route = createFileRoute("/goals/")({
   component: RouteComponent,
 });
 
@@ -33,12 +35,7 @@ function RouteComponent() {
   );
   const [goalSelected, setGoalSelected] = useState<GoalRead | null>(null);
 
-  const { data: goals } = useQuery<GoalRead[]>({
-    queryKey: ["goals"],
-    queryFn: getGoals,
-  });
-
-  /* const { data: strategies } = useQuery<GoalStrategyRead[]>({}); */
+  const { data: goals } = useGoals();
 
   const generateStrategyMutation = useJobMutation({
     mutationFn: generateStrategy,
@@ -75,7 +72,7 @@ function RouteComponent() {
   });
 
   return (
-    <div className={styles.goalsContainer}>
+    <div className={sharedStyles.contentContainer}>
       <button
         className={styles.createGoalButton}
         onClick={() => setModal("create")}
@@ -85,7 +82,13 @@ function RouteComponent() {
       {goals?.map((goal) => (
         <div className={styles.goalItem} key={goal.id}>
           <div className={styles.goalHeader}>
-            <h2 className={styles.goalTitle}>{goal.title}</h2>
+            <Link
+              to={"/goals/$goalId"}
+              params={{ goalId: goal.id }}
+              className={styles.goalLink}
+            >
+              <h2 className={styles.goalTitle}>{goal.title}</h2>
+            </Link>
             <div className={styles.goalHeaderButtonsContainer}>
               <button
                 onClick={() => {
@@ -153,6 +156,10 @@ function RouteComponent() {
   );
 }
 
+function selectBookmarkedModels(models: OpenAiApiModelRead[]) {
+  return models.filter((model) => model.bookmarked);
+}
+
 function GenerateStrategyModal({
   goal,
   close,
@@ -166,12 +173,6 @@ function GenerateStrategyModal({
     { id: number; request: StrategyGenerationRequest }
   >;
 }) {
-  const selectBookmarkedModels = useCallback(
-    (models: OpenAiApiModelRead[]) =>
-      models.filter((model) => model.bookmarked),
-    []
-  );
-
   const { data: models } = useQuery({
     ...openaiApiModelsQueryOptions,
     staleTime: Infinity,
@@ -328,12 +329,6 @@ function GoalModal({
       </div>
     </Modal>
   );
-}
-
-async function getGoals(): Promise<GoalRead[]> {
-  const res = await fetch(`${apiConfig.HTTP_URL}/goals`);
-  if (!res.ok) throw new Error("Network response was not ok");
-  return res.json();
 }
 
 async function createGoal(goal: GoalCreate): Promise<GoalRead> {

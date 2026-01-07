@@ -32,7 +32,7 @@ export function useJobMutation<TVariables>({
 
   const selectTrackedJob = useCallback(
     (jobs: JobRead[]) => jobs.find((job) => job.id === trackedJobId),
-    []
+    [trackedJobId]
   );
 
   const { data: trackedJob } = useQuery({
@@ -48,6 +48,7 @@ export function useJobMutation<TVariables>({
     if (trackedJob.status === "done") {
       onJobDoneRef.current?.();
     }
+
     setTrackedJobId(null);
   }, [trackedJob]);
 

@@ -29,7 +29,6 @@ export function useJobPolling() {
     const updates = polledJobsQuery.data;
     if (!updates) return;
     queryClient.setQueryData<JobRead[]>(["jobs"], (oldData) => {
-      
       if (!oldData) return oldData;
       let hasChanges = false;
       const newData = oldData.map((job) => {

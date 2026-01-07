@@ -1,12 +1,3 @@
-.goalsContainer {
-  display: flex;
-  flex-direction: column;
-  margin: 0 auto;
-  max-width: var(--width-content-max);
-  width: 100%;
-  padding: var(--spacing-md);
-}
-
 .goalItem {
   border-bottom: 1px solid var(--color-border);
 }
@@ -32,8 +23,18 @@
   cursor: pointer;
 }
 
+.goalLink {
+  color: rgb(74, 132, 130);
+  text-decoration-color: black;
+  text-decoration-style: solid;
+}
+
+.goalLink:visited {
+  /*   color: burlywood;
+  text-decoration-color: rgb(255, 247, 0); */
+}
+
 .goalTitle {
-  text-decoration: underline;
 }
 
 .goalDescription {
@@ -87,7 +88,7 @@
 }
 
 .goalModalButtonsContainer {
-  display: flex;  
+  display: flex;
   justify-content: flex-end;
   gap: var(--spacing-sm);
 }
@@ -97,7 +98,6 @@
 }
 
 .goalModalCancelButton {
-
 }
 
 .goalModalSaveButton,
@@ -105,4 +105,3 @@
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-md);
 }
-
