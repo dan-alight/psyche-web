@@ -3,7 +3,7 @@ import { apiConfig } from "@/apiConfig";
 import type { OpenAiApiModelRead } from "@/types/api";
 
 export const openaiApiModelsQueryOptions = {
-  queryKey: ["models", "bookmarked"],
+  queryKey: ["models"],
   queryFn: getOpenAiApiModels,
 };
 
