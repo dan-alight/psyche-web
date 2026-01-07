@@ -16,11 +16,10 @@ interface UseJobMutationProps<TVariables> {
 export function useJobMutation<TVariables>({
   mutationFn,
   onJobDone,
-}: UseJobMutationProps<TVariables>): UseMutationResult<
-  JobRead,
-  Error,
-  TVariables
-> {
+}: UseJobMutationProps<TVariables>): {
+  mutation: UseMutationResult<JobRead, Error, TVariables>;
+  jobIsPending: boolean;
+} {
   const queryClient = useQueryClient();
 
   const [trackedJobId, setTrackedJobId] = useState<number | null>(null);
@@ -52,7 +51,7 @@ export function useJobMutation<TVariables>({
     setTrackedJobId(null);
   }, [trackedJob]);
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: mutationFn,
     onSuccess: async (data) => {
       await queryClient.cancelQueries(
@@ -68,4 +67,6 @@ export function useJobMutation<TVariables>({
       setTrackedJobId(data.id);
     },
   });
+  const jobIsPending = !!trackedJob && trackedJob.status === "pending";
+  return { mutation, jobIsPending: jobIsPending };
 }

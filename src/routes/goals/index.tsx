@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   useQueryClient,
@@ -15,11 +15,11 @@ import type {
   GoalUpdate,
   JobRead,
   StrategyGenerationRequest,
-  GoalStrategyRead,
   OpenAiApiModelRead,
 } from "@/types/api";
 import { useJobMutation } from "@/mutations/useJobMutation";
 import { useGoals } from "@/queries/useGoals";
+import { useGoalsMetadata } from "@/queries/useGoalsMetadata";
 import Modal from "@/components/Modal";
 import styles from "./index.module.css";
 import sharedStyles from "@/styles/shared.module.css";
@@ -37,10 +37,22 @@ function RouteComponent() {
 
   const { data: goals } = useGoals();
 
-  const generateStrategyMutation = useJobMutation({
+  const { data: metadata } = useGoalsMetadata();
+
+  const goalsWithMetadata = useMemo(() => {
+    if (!goals || !metadata) return [];
+
+    const metadataByGoalId = new Map(metadata.map((m) => [m.goal_id, m]));
+
+    return goals
+      .filter((goal) => metadataByGoalId.has(goal.id))
+      .map((goal) => ({ ...goal, ...metadataByGoalId.get(goal.id) }));
+  }, [goals, metadata]);
+
+  const { mutation: generateStrategyMutation, jobIsPending } = useJobMutation({
     mutationFn: generateStrategy,
     onJobDone: () => {
-      console.log("ya got me");
+      queryClient.invalidateQueries({ queryKey: ["goals", "metadata"] });
     },
   });
 
@@ -50,6 +62,7 @@ function RouteComponent() {
       queryClient.setQueryData<GoalRead[]>(["goals"], (goals) =>
         goals ? [...goals, goal] : goals
       );
+      queryClient.invalidateQueries({ queryKey: ["goals", "metadata"] });
     },
   });
 
@@ -79,15 +92,19 @@ function RouteComponent() {
       >
         Create Goal
       </button>
-      {goals?.map((goal) => (
-        <div className={styles.goalItem} key={goal.id}>
+      {goalsWithMetadata.map((goal) => (
+        <div
+          className={styles.goalItem}
+          data-has-strategy={goal.has_strategy}
+          key={goal.id}
+        >
           <div className={styles.goalHeader}>
             <Link
               to={"/goals/$goalId"}
               params={{ goalId: goal.id }}
               className={styles.goalLink}
             >
-              <h2 className={styles.goalTitle}>{goal.title}</h2>
+              <h2>{goal.title}</h2>
             </Link>
             <div className={styles.goalHeaderButtonsContainer}>
               <button
@@ -95,8 +112,13 @@ function RouteComponent() {
                   setGoalSelected(goal);
                   setModal("strategy");
                 }}
+                className={styles.generateStrategyButton}
+                data-has-strategy={goal.has_strategy}
+                disabled={jobIsPending}
               >
-                Generate Strategy
+                {goal.has_strategy
+                  ? "Regenerate Strategy"
+                  : "Generate Strategy"}
               </button>
               <button
                 onClick={() => {
@@ -384,11 +406,5 @@ async function generateStrategy({
     }
   );
   if (!res.ok) throw new Error("Network response was not ok");
-  return res.json();
-}
-
-async function getStrategy(gid: number): Promise<GoalStrategyRead> {
-  const res = await fetch(`${apiConfig.HTTP_URL}/goals/${gid}/strategy`);
-  if (!res.ok) throw new Error("Could not get strategy");
   return res.json();
 }

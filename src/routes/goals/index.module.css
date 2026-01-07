@@ -1,5 +1,10 @@
 .goalItem {
   border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-sm);
+}
+
+.goalItem[data-has-strategy="true"] {
+   /* background-color: rgb(245, 255, 245);  */
 }
 
 .goalHeader {
@@ -29,17 +34,18 @@
   text-decoration-style: solid;
 }
 
-.goalLink:visited {
-  /*   color: burlywood;
-  text-decoration-color: rgb(255, 247, 0); */
-}
-
-.goalTitle {
-}
-
 .goalDescription {
   margin-bottom: var(--spacing-md);
   white-space: pre-wrap;
+}
+
+.generateStrategyButton {
+
+}
+
+.generateStrategyButton[data-has-strategy="true"] {
+  background-color: green;
+  color: white;
 }
 
 .createGoalButton {
@@ -47,6 +53,7 @@
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--font-size-lg);
   border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .modalContainer {

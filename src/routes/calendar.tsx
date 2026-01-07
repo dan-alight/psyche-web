@@ -38,7 +38,7 @@ function CalendarContent({ isoDate }: { isoDate: string }) {
     queryFn: () => getActivities(isoDate),
   });
 
-  const generateCalendarMutation = useJobMutation({
+  const { mutation: generateCalendarMutation } = useJobMutation({
     mutationFn: generateCalendar,
     onJobDone: () =>
       queryClient.invalidateQueries({ queryKey: ["activities", isoDate] }),

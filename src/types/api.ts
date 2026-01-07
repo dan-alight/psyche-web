@@ -83,3 +83,8 @@ export interface GoalStrategyRead {
   goal_id: number;
   strategy: string;
 }
+
+export interface GoalMetadata {
+  goal_id: number;
+  has_strategy: boolean;
+}
