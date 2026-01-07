@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   useQueryClient,
   useQuery,
@@ -30,11 +30,16 @@ export function useJobMutation<TVariables>({
     onJobDoneRef.current = onJobDone;
   });
 
+  const selectTrackedJob = useCallback(
+    (jobs: JobRead[]) => jobs.find((job) => job.id === trackedJobId),
+    []
+  );
+
   const { data: trackedJob } = useQuery({
     ...jobsQueryOptions,
     enabled: !!trackedJobId,
     staleTime: Infinity,
-    select: (jobs) => jobs.find((job) => job.id === trackedJobId),
+    select: selectTrackedJob,
   });
 
   useEffect(() => {

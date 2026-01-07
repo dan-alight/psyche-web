@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   useQueryClient,
@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
 import { openaiApiModelsQueryOptions } from "@/queries/useOpenAiApiModels";
-import { useOpenAiApiProviders } from "@/queries/useOpenAiApiProviders";
+import { openaiApiProvidersQueryOptions } from "@/queries/useOpenAiApiProviders";
 import type {
   GoalRead,
   GoalCreate,
@@ -16,6 +16,7 @@ import type {
   JobRead,
   StrategyGenerationRequest,
   GoalStrategyRead,
+  OpenAiApiModelRead,
 } from "@/types/api";
 import { useJobMutation } from "@/mutations/useJobMutation";
 import Modal from "@/components/Modal";
@@ -165,11 +166,21 @@ function GenerateStrategyModal({
     { id: number; request: StrategyGenerationRequest }
   >;
 }) {
+  const selectBookmarkedModels = useCallback(
+    (models: OpenAiApiModelRead[]) =>
+      models.filter((model) => model.bookmarked),
+    []
+  );
+
   const { data: models } = useQuery({
     ...openaiApiModelsQueryOptions,
-    select: (models) => models.filter((model) => model.bookmarked),
+    staleTime: Infinity,
+    select: selectBookmarkedModels,
   });
-  const { data: providers } = useOpenAiApiProviders();
+  const { data: providers } = useQuery({
+    ...openaiApiProvidersQueryOptions,
+    staleTime: Infinity,
+  });
 
   const modelsWithProviders = useMemo(() => {
     return models?.map((model) => {
@@ -184,9 +195,6 @@ function GenerateStrategyModal({
 
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
   const effectiveModelId = selectedModelId ?? models?.[0]?.id;
-  const selectedModel = modelsWithProviders?.find(
-    (model) => model.id === effectiveModelId
-  );
 
   return (
     <Modal onClose={close}>
@@ -194,13 +202,10 @@ function GenerateStrategyModal({
         <h2>Generate strategy</h2>
         <h3>Select model</h3>
         <select
-          value={selectedModel?.id}
-          onChange={(e) =>
-            setSelectedModelId(
-              models?.find((model) => model.id === Number(e.target.value))
-                ?.id ?? null
-            )
-          }
+          value={effectiveModelId}
+          onChange={(e) => {
+            setSelectedModelId(Number(e.target.value));
+          }}
         >
           {modelsWithProviders?.map((model) => {
             return (
@@ -213,11 +218,11 @@ function GenerateStrategyModal({
           })}
         </select>
         <button
-          disabled={!selectedModel}
+          disabled={!effectiveModelId}
           onClick={() => {
             generateStrategyMutation.mutate({
               id: goal.id,
-              request: { model_id: selectedModel!.id },
+              request: { model_id: effectiveModelId! },
             });
             close();
           }}

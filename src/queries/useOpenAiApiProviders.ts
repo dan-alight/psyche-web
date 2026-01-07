@@ -2,10 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiConfig } from "@/apiConfig";
 import type { OpenAiApiProviderRead } from "@/types/api";
 
+export const openaiApiProvidersQueryOptions = {
+  queryKey: ["providers"],
+  queryFn: getProviders,
+};
+
 export function useOpenAiApiProviders() {
   return useQuery({
-    queryKey: ["providers"],
-    queryFn: getProviders,
+    ...openaiApiProvidersQueryOptions,
   });
 }
 
