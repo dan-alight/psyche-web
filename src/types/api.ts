@@ -4,6 +4,7 @@ export interface GoalRead {
   description: string;
   initial_progress: string;
   strategy_guidelines: string;
+  active: boolean;
 }
 
 export interface GoalCreate {
@@ -13,7 +14,13 @@ export interface GoalCreate {
   strategy_guidelines: string;
 }
 
-export type GoalUpdate = Partial<GoalCreate>;
+export interface GoalUpdate {
+  title?: string;
+  description?: string;
+  initial_progress?: string;
+  strategy_guidelines?: string;
+  active?: boolean;
+}
 
 export interface OpenAiApiProviderRead {
   id: number;

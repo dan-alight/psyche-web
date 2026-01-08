@@ -49,10 +49,19 @@ function RouteComponent() {
       .map((goal) => ({ ...goal, ...metadataByGoalId.get(goal.id) }));
   }, [goals, metadata]);
 
+  const updateGoalMutation = useMutation({
+    mutationFn: updateGoal,
+    onSuccess: (updatedGoal) => {
+      queryClient.setQueryData<GoalRead[]>(["goals"], (goals) =>
+        goals?.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
+      );
+    },
+  });
+
   const { mutation: generateStrategyMutation, jobIsPending } = useJobMutation({
     mutationFn: generateStrategy,
     onJobDone: () => {
-      queryClient.invalidateQueries({ queryKey: ["goals", "metadata"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
     },
   });
 
@@ -63,15 +72,6 @@ function RouteComponent() {
         goals ? [...goals, goal] : goals
       );
       queryClient.invalidateQueries({ queryKey: ["goals", "metadata"] });
-    },
-  });
-
-  const updateGoalMutation = useMutation({
-    mutationFn: updateGoal,
-    onSuccess: (updatedGoal) => {
-      queryClient.setQueryData<GoalRead[]>(["goals"], (goals) =>
-        goals?.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
-      );
     },
   });
 
@@ -107,18 +107,30 @@ function RouteComponent() {
               <h2>{goal.title}</h2>
             </Link>
             <div className={styles.goalHeaderButtonsContainer}>
+              <label className={sharedStyles.switch}>
+                <input
+                  type="checkbox"
+                  disabled={!goal.has_strategy}
+                  checked={goal.active}
+                  onChange={(e) =>
+                    updateGoalMutation.mutate({
+                      id: goal.id,
+                      goal: { ...goal, active: e.target.checked },
+                    })
+                  }
+                />
+                <span className={`${sharedStyles.slider}`}></span>
+              </label>
               <button
                 onClick={() => {
                   setGoalSelected(goal);
                   setModal("strategy");
                 }}
                 className={styles.generateStrategyButton}
-                data-has-strategy={goal.has_strategy}
-                disabled={jobIsPending}
+                /* data-has-strategy={goal.has_strategy}
+                disabled={jobIsPending} */
               >
-                {goal.has_strategy
-                  ? "Regenerate Strategy"
-                  : "Generate Strategy"}
+                Generate Strategy
               </button>
               <button
                 onClick={() => {
